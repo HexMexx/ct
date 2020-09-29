@@ -1,0 +1,294 @@
+package Programm;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class Main {
+			public static void main(String[] args) throws FileNotFoundException, IOException {
+
+				 String MatrixA = new String(args[0]);
+				 
+				 System.out.println(args[0]);
+				 System.out.println(args[1]);
+				 String MatrixB = new String(args[1]);
+				
+
+				 
+		// Erstellen der benötigten Matrizen A, AT (A transponiert) und B		 
+		double[][] A = new double[2064][7396];
+		double[][] AT = new double[7396][2064];
+		double[] B = new double[2064];
+
+		// Erstellen der benötigten Vektoren
+		double[] u = new double[7396];
+		double[] pix = new double[7396];
+		double[] r0 = new double[7396];
+
+		// Einlesen von A
+
+		int spalte = 0;
+
+		BufferedReader reader;
+		try {
+			reader = new BufferedReader(
+					// new FileReader("k"));
+			new FileReader(args[0]));
+
+			String line = reader.readLine();
+
+			while (line != null) {
+
+				A[spalte % 2064][spalte / 2064] = Integer.parseInt(line);
+
+				spalte++;
+
+				line = reader.readLine();
+			}
+
+			reader.close();
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		}
+
+		spalte = 0;
+
+		// einlesen von transponierten A
+
+		try {
+			reader = new BufferedReader(
+					new FileReader(args[0]));
+
+			String line = reader.readLine();
+
+			while (line != null) {
+
+				AT[spalte % 7396][spalte / 7396] = Integer.parseInt(line);
+
+				spalte++;
+
+				line = reader.readLine();
+			}
+
+			reader.close();
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		}
+
+
+		spalte = 0;
+
+		// Einlesen von B
+		
+		try {
+			reader = new BufferedReader(
+					new FileReader(args[1]));
+
+			String line = reader.readLine();
+
+			while (line != null) {
+
+				B[spalte] = Integer.parseInt(line);
+
+				spalte++;
+
+				line = reader.readLine();
+			}
+
+			reader.close();
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		}
+		
+		System.out.println(" A an 0-0 " + A[0][0]);
+
+		System.out.println(" A an 2063-7395 " + A[2063][7395]);
+
+		System.out.println(" AT an 0-0 " + AT[0][0]);
+
+		System.out.println(" AT an 7395-2063 " + AT[7095][2063]);
+
+		System.out.println(B[2063]);
+
+		for (int i = 0; i < u.length; i++) {
+			u[i] = 0;
+		}
+
+		double[] A_MAL_U = multiplyWithForLoopsH(A, u);
+
+		 r0 = minusRechnen(B, A_MAL_U);
+
+		System.out.println("r an stelle 1    =     " + r0[0]);
+
+		// rechne s0 aus
+
+		System.out.println("AT= " + AT.length + "   " + AT[0].length);
+
+		System.out.println("r0= " + r0.length);
+
+		double[] s0 = multiplyWithForLoops(AT, r0);
+
+		System.out.println("Vektor s0 = " + s0[0]);
+
+		// p0 mit s0 gleichsetzen
+
+		double[] p0 = s0;
+
+		// Phi0 errechnen
+
+		double Phi0 = skalar(s0, s0);
+
+		System.out.println("Phi0 = " + Phi0);
+
+		double t = 0.0001;
+
+		int k = 0;
+
+		while (Math.abs(r0[k]) >= t) {
+
+			double[] A_MAL_P = multiplyWithForLoops(A, p0);
+
+			double Phi0_ = skalar(A_MAL_P, A_MAL_P);
+
+			double a_k = Phi0 / Phi0_;
+
+			u[k+1] = u[k] + (a_k * p0[k]);
+			
+			//for (int i = 0; i < u.length; i++) {
+			//	u[i] = u[i] + (a_k * p0[i]);
+			//}
+
+			r0[k+1] = r0[k] - (a_k * A_MAL_P[k]); 
+			
+			//for (int i = 0; i < r0.length; i++) {
+			//	r0[i] = r0[i] - (a_k * A_MAL_P[i]);
+			//}
+
+			s0 = multiplyWithForLoops(AT, r0);
+
+			double Phi1 = skalar(s0, s0);
+
+			double mue = Phi1 / Phi0;
+
+			for (int i = 0; i < p0.length; i++) {
+				p0[i] = s0[i] + (mue * p0[i]);
+			}
+
+			// Errechnete Werte speichern
+			pix[k] = mue;
+
+			System.out.println("Mue " + k + " = " + mue);
+
+			k++;
+
+			// aus Phi(k+1) --> Phi(k) machen
+			Phi0 = Phi1;
+
+		}
+
+		// Auswerten der gesammelten Werte in pix[k]
+		// Für Bild benötigt man hellsten und dunkelsten Punkt
+		double min = 1;
+		double max = 1;
+		for (int i = 0; i < pix.length; i++) {
+
+			// Minimum bestimmen
+			if (pix[i] < min && pix[i] != 0) {
+				min = pix[i];
+			}
+
+			// Maximun bestimmen
+			if (pix[i] > max) {
+				max = pix[i];
+			}
+
+		}
+		System.out.println("Der kleinste Wert ist: " + min);
+		System.out.println("Der groesste Wert ist: " + max);
+
+	}
+
+// Funktion für die Subtraktion zweier Vektoren
+	public static double[] minusRechnen(double[] a, double[] b) {
+		double[] output = new double[a.length];
+
+		for (int i = 0; i < output.length; i++) {
+			output[i] = a[i] - b[i];
+		}
+
+		return output;
+
+	}
+
+	// Multipliktation einer transponierten Matrix mit Vektor
+	public static double[] multiplyWithForLoops(double[][] matrix, double[] vector) {
+		int rows = matrix.length;
+		int columns = matrix[0].length;
+
+		System.out.println(rows + "     c  " + columns);
+
+		double[] result = new double[rows];
+
+		for (int row = 0; row < rows; row++) {
+			double sum = 0;
+			for (int column = 0; column < columns; column++) {
+
+				double xxx = matrix[row][column];
+
+				xxx *= vector[column];
+
+				sum += xxx;
+
+			}
+
+			result[row] = sum;
+		}
+		return result;
+	}
+
+	// Multiplikation einer Matrix mit Vektor
+	public static double[] multiplyWithForLoopsH(double[][] matrix, double[] vector) {
+		int rows = matrix.length;
+		int columns = matrix[0].length;
+
+		double[] result = new double[rows];
+
+		for (int row = 0; row < rows; row++) {
+			double sum = 0;
+			for (int column = 0; column < columns; column++) {
+				sum += matrix[row][column] * vector[row];
+			}
+			result[row] = sum;
+		}
+		return result;
+	}
+
+//transponieren der Matrix
+	public static double[][] transposeMatrix(double[][] m) {
+		double[][] temp = new double[m[0].length][m.length];
+		for (int i = 0; i < m.length; i++)
+			for (int j = 0; j < m[0].length; j++)
+				temp[j][i] = m[i][j];
+		return temp;
+	}
+
+	// Skalarprodukt ausrechnen
+	public static double skalar(double[] v1, double[] v2) {
+		double skalarprodukt = 0;
+
+		for (int i = 0; i < v1.length; i++) {
+			skalarprodukt = skalarprodukt + v1[i] * v2[i];
+		}
+
+		return skalarprodukt;
+
+	}
+
+}
